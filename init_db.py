@@ -1,24 +1,28 @@
+
 import sqlite3
 import logging
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+DB_PATH = "crypto_vault.db"
+SCHEMA_PATH = "schema.sql"
 
-def initialize_database(db_path: str = "crypto_vault.db", schema_path: str = "schema.sql"):
-    """Reads schema.sql and executes it against the SQLite database."""
-    logging.info(f"Initializing database '{db_path}' using '{schema_path}'...")
-    
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+def initialize_database(db_path=DB_PATH):
     try:
-        with sqlite3.connect(db_path) as conn:
-            with open(schema_path, "r", encoding="utf-8") as f:
-                schema_script = f.read()
-            
-            # Execute multi-statement SQL script
-            conn.executescript(schema_script)
-            logging.info("Database schema successfully created and initialized.")
-            
-    except Exception as e:
-        logging.critical(f"Failed to initialize database: {e}")
+        with open(SCHEMA_PATH, "r", encoding="utf-8") as schema_file:
+            schema = schema_file.read()
+
+        with sqlite3.connect(db_path) as connection:
+            connection.executescript(schema)
+
+        logger.info("Database initialized successfully: %s", db_path)
+
+    except (sqlite3.Error, OSError) as error:
+        logger.error("Database initialization failed: %s", error)
         raise
+
 
 if __name__ == "__main__":
     initialize_database()
