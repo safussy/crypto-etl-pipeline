@@ -184,8 +184,61 @@ python run_cte.py
 ```
 
 Query results are displayed in the terminal.
+## 10. SQL Query Results
 
-## 10. Testing and Data Validation
+The following examples illustrate the results produced by the project's analytical SQL queries.
+
+### Historical Price Aggregations
+
+The aggregation query calculates average, minimum, and maximum prices across historical snapshots.
+
+| Cryptocurrency | Average Price (USD) | Minimum Price (USD) | Maximum Price (USD) | Snapshots |
+|---|---:|---:|---:|---:|
+| Bitcoin (BTC) | 69,357.33 | 69,260.00 | 69,434.00 | 3 |
+| Ethereum (ETH) | 1,960.48 | 1,959.26 | 1,961.21 | 3 |
+| Solana (SOL) | 80.71 | 80.65 | 80.75 | 3 |
+
+### Latest Market Snapshot
+
+The latest snapshot query retrieves the most recent recorded prices.
+
+| Cryptocurrency | Latest Price (USD) |
+|---|---:|
+| Bitcoin (BTC) | 69,260.00 |
+| Ethereum (ETH) | 1,960.96 |
+| BNB | 641.04 |
+| Solana (SOL) | 80.75 |
+
+### Price Momentum and Moving Averages
+
+Window functions calculate price changes between consecutive snapshots and three-record moving averages.
+
+Example: BNB
+
+| Metric | Result |
+|---|---:|
+| Current Price | $641.04 |
+| Previous Price | $639.78 |
+| Price Change | +0.20% |
+| Three-Snapshot Moving Average | $640.14 |
+
+### Top Asset Analysis Using CTEs
+
+The CTE query organizes the latest cryptocurrency market data by market capitalization rank.
+
+| Rank | Cryptocurrency | Price (USD) |
+|---:|---|---:|
+| 1 | Bitcoin (BTC) | 69,260.00 |
+| 2 | Ethereum (ETH) | 1,960.96 |
+| 3 | Tether (USDT) | 0.999266 |
+| 4 | BNB | 641.04 |
+| 5 | USD Coin (USDC) | 0.999588 |
+
+These results demonstrate the use of SQL aggregation, subqueries, window functions, and Common Table Expressions for cryptocurrency market analysis.
+
+
+
+## 11. Testing and Data Validation
 
 The project includes automated tests using Pytest.
 
@@ -212,7 +265,7 @@ Post-load validation checks:
 - Duplicate cryptocurrency identifiers.
 - Historical snapshot availability.
 
-## 11. Performance and Optimization
+## 12. Performance and Optimization
 
 The project explores database query performance and indexing.
 
@@ -220,7 +273,7 @@ An index on `(coin_id, recorded_at)` supports historical data retrieval.
 
 The benchmark scripts and SQLite query execution plans are used to examine query behavior and identify potential optimization opportunities.
 
-## 12. Future Improvements
+## 13. Future Improvements
 
 - Automate periodic ETL execution.
 - Add a dashboard for cryptocurrency market trends.
