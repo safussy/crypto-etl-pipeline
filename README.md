@@ -43,8 +43,6 @@ The pipeline follows three main ETL stages:
 5. **Analytics:** Execute SQL queries to analyze historical prices and market trends.
 
 ### Architecture Flow
-
-```text
 CoinGecko API
       |
       v
@@ -60,19 +58,15 @@ CoinGecko API
  Cleaned Data
       |
       v
-     Load
+    Load
       |
       v
-  SQLite Database
+ SQLite Database
       |
       +------------------+
       |                  |
       v                  v
  Validation         SQL Analytics
-                         |
-                         v
-                   Query Results
-```
 
 ## 5. Project Structure
 
@@ -135,7 +129,7 @@ An index on `(coin_id, recorded_at)` supports queries that filter or order histo
 ### Clone the repository
 
 ```bash
-git clone YOUR_GITHUB_REPOSITORY_URL
+git clone https://github.com/safussy/crypto-etl-pipeline.git
 cd crypto-etl-pipeline
 ```
 
