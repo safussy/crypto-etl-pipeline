@@ -1,22 +1,29 @@
+import os
 import json
 import logging
-import os
 from datetime import datetime, timezone
 import requests
 
-# 1. Logging configuration
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s"
-)
+# --- CONFIGURE DUAL LOGGING (Console + pipeline.log) ---
+logger = logging.getLogger("crypto_etl")
+logger.setLevel(logging.INFO)
 
-# 2. API endpoint and query parameters
-COINGECKO_BASE_URL = "https://api.coingecko.com/api/v3/coins/markets"
+if not logger.handlers:
+    log_format = logging.Formatter("%(asctime)s [%(levelname)s] [%(filename)s] %(message)s")
 
-HEADERS = {
-    "User-Agent": "CryptoETL/1.0 (Data Engineering Educational Project)"
-}
+    # 1. Terminal Handler
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(log_format)
+    logger.addHandler(console_handler)
 
+    # 2. File Handler (Appends to pipeline.log)
+    file_handler = logging.FileHandler("pipeline.log", mode="a", encoding="utf-8")
+    file_handler.setFormatter(log_format)
+    logger.addHandler(file_handler)
+
+# Target endpoint settings
+COINGECKO_URL = "https://api.coingecko.com/api/v3/coins/markets"
+HEADERS = {"User-Agent": "CryptoETL/1.0 (Educational Data Pipeline)"}
 PARAMS = {
     "vs_currency": "usd",
     "order": "market_cap_desc",
@@ -25,52 +32,48 @@ PARAMS = {
     "sparkline": "false"
 }
 
-def fetch_crypto_markets(url: str, params: dict, headers: dict, timeout: int = 10) -> list:
-    """
-    Sends a GET request to the CoinGecko API to fetch top crypto market snapshots.
-    Handles network errors, timeouts, and rate limits gracefully.
-    """
-    logging.info(f"Initiating GET request to: {url}")
+def extract_crypto_data(url=COINGECKO_URL, params=PARAMS, headers=HEADERS, timeout=10):
+    """Fetches raw market data from CoinGecko with defensive error handling."""
+    logger.info(f"Connecting to endpoint: {url}")
+    
     try:
         response = requests.get(url, params=params, headers=headers, timeout=timeout)
-        
-        # Check HTTP status code; raises an HTTPError if status is 4xx or 5xx
         response.raise_for_status()
-        
         data = response.json()
-        logging.info(f"Extraction successful: received {len(data)} coin records.")
+        logger.info(f"Extraction successful: retrieved {len(data)} raw coin payloads.")
         return data
 
-    except requests.exceptions.HTTPError as err:
-        logging.error(f"HTTP error occurred: {err}")
-        if response.status_code == 429:
-            logging.error("Rate limit reached. CoinGecko public API limits calls per minute.")
-        raise
     except requests.exceptions.Timeout:
-        logging.error(f"Request timed out after {timeout} seconds.")
+        logger.error(f"Request timed out: server failed to respond within {timeout} seconds.")
+        raise
+    except requests.exceptions.HTTPError as http_err:
+        logger.error(f"HTTP error occurred: {http_err}")
+        if response.status_code == 429:
+            logger.error("Rate limit reached: CoinGecko request threshold exceeded.")
+        raise
+    except requests.exceptions.ConnectionError:
+        logger.error("Connection failed: check network connectivity or DNS settings.")
         raise
     except requests.exceptions.RequestException as err:
-        logging.error(f"Network transport error: {err}")
+        logger.error(f"Unexpected networking error: {err}")
         raise
 
-def save_raw_landing(records: list, output_dir: str = "data/raw") -> str:
-    """
-    Persists unparsed payload to disk as an immutable raw landing file.
-    """
+def save_raw_payload(data: list, output_dir: str = "data/raw") -> str:
+    """Saves raw JSON array into a timestamped file inside data/raw/."""
     os.makedirs(output_dir, exist_ok=True)
-    utc_now = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    file_path = os.path.join(output_dir, f"markets_{utc_now}.json")
+    timestamp_str = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    file_path = os.path.join(output_dir, f"markets_{timestamp_str}.json")
     
     with open(file_path, "w", encoding="utf-8") as f:
-        json.dump(records, f, indent=4)
+        json.dump(data, f, indent=4)
         
-    logging.info(f"Raw landing file persisted to: {file_path}")
+    logger.info(f"Raw landing file created: {file_path}")
     return file_path
 
 if __name__ == "__main__":
     try:
-        raw_data = fetch_crypto_markets(COINGECKO_BASE_URL, PARAMS, HEADERS)
-        saved_path = save_raw_landing(raw_data)
-        logging.info("Pipeline Step: Extraction stage completed successfully.")
+        raw_records = extract_crypto_data(COINGECKO_URL, PARAMS, HEADERS, timeout=10)
+        save_raw_payload(raw_records)
+        logger.info("Extraction stage completed successfully.")
     except Exception as e:
-        logging.critical(f"Pipeline Step: Extraction stage failed: {e}")
+        logger.critical(f"Pipeline stopped during extraction: {e}")
