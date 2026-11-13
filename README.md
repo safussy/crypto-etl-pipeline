@@ -1,72 +1,88 @@
 # Cryptocurrency ETL Pipeline
 
-A Python-based ETL pipeline that extracts cryptocurrency market data from the CoinGecko API, transforms and validates the data, and stores historical price snapshots in a SQLite database for SQL-based analysis.
+An end-to-end data engineering project that extracts cryptocurrency market data from the CoinGecko API, transforms and validates it using Python and Pandas, and stores current and historical records in SQLite for SQL-based analysis.
 
 ## 1. Project Overview
 
-This project implements an end-to-end data engineering workflow for collecting, processing, storing, and analyzing cryptocurrency market data.
+This project implements an ETL (Extract, Transform, Load) pipeline designed to collect, process, store, and analyze cryptocurrency market data.
 
-The pipeline retrieves market information for multiple cryptocurrencies, cleans and standardizes the extracted records, and loads them into a relational SQLite database.
+The pipeline retrieves market information for multiple cryptocurrencies, cleans and standardizes the extracted data, and loads it into a relational SQLite database.
 
-It also provides SQL analytics to explore price trends, historical snapshots, moving averages, and market metrics.
+In addition to data ingestion, the project includes SQL analytical queries for historical aggregations, price momentum, moving averages, and market analysis.
 
 ## 2. Project Objectives
 
-- Build an automated ETL pipeline using Python.
-- Extract cryptocurrency market data through a REST API.
-- Clean and transform raw JSON data using Pandas.
-- Design and manage a SQLite database.
-- Maintain historical price snapshots.
+- Build an end-to-end ETL pipeline using Python.
+- Extract cryptocurrency market data from a REST API.
+- Transform raw JSON data using Pandas.
+- Handle missing values, invalid records, and duplicates.
+- Design and manage a relational SQLite database.
+- Maintain historical price snapshots across pipeline executions.
 - Perform analytical queries using SQL.
-- Validate data quality and test pipeline components.
-- Measure query performance and explore database indexing.
+- Implement data quality validation and automated tests.
+- Explore database indexing and query performance.
 
 ## 3. Technologies Used
 
-- **Python:** Core programming language used to implement the ETL pipeline.
-- **CoinGecko API:** REST API used to retrieve cryptocurrency market data.
-- **Pandas:** Used for data cleaning, transformation, and preparation.
-- **SQLite:** Relational database used to store current and historical cryptocurrency records.
-- **SQL:** Used for data aggregation, historical analysis, window functions, and CTEs.
-- **Pytest:** Used to test transformation logic and database query correctness.
-- **Git & GitHub:** Used for version control and project hosting.
-## 4. Architecture and ETL Workflow
+- **Python:** Main programming language for the ETL pipeline.
+- **CoinGecko API:** External source of cryptocurrency market data.
+- **Pandas:** Data cleaning, transformation, and preparation.
+- **SQLite:** Relational database for current and historical records.
+- **SQL:** Data aggregation, analytical queries, window functions, and CTEs.
+- **Pytest:** Automated testing of transformation and database logic.
+- **Git & GitHub:** Version control and project hosting.
 
-The pipeline follows three main ETL stages:
+## 4. System Architecture
 
-**Extract → Transform → Load**
+The project follows a structured ETL workflow:
 
-1. **Extraction:** Retrieve cryptocurrency market data from the CoinGecko API and save raw JSON files.
-2. **Transformation:** Clean records, convert data types, handle missing values, and remove duplicates.
-3. **Loading:** Insert processed records into SQLite, updating the latest records and storing historical snapshots.
-4. **Validation:** Check data completeness, positive prices, and duplicate records.
-5. **Analytics:** Execute SQL queries to analyze historical prices and market trends.
+**Extract → Transform → Load → Validate → Analyze**
 
 ### Architecture Flow
-CoinGecko API
-      |
-      v
-   Extract
-      |
-      v
- Raw JSON Data
-      |
-      v
-  Transform
-      |
-      v
- Cleaned Data
-      |
-      v
-    Load
-      |
-      v
- SQLite Database
-      |
-      +------------------+
-      |                  |
-      v                  v
- Validation         SQL Analytics
+
+```text
+                  CoinGecko API
+                        |
+                        v
+                  1. EXTRACTION
+                        |
+                        v
+                  Raw JSON Files
+                        |
+                        v
+                 2. TRANSFORMATION
+                        |
+                        v
+                   Cleaned Data
+                        |
+                        v
+                     3. LOADING
+                        |
+                        v
+                 SQLite Database
+                  /           \
+                 v             v
+           Latest Data    Historical Data
+                 \             /
+                  v           v
+                  4. VALIDATION
+                        |
+                        v
+                  5. SQL ANALYTICS
+                        |
+                        v
+                   Query Results
+```
+
+### Pipeline Components
+
+| Component | Responsibility |
+|---|---|
+| Extraction | Retrieves market data from CoinGecko and saves raw JSON files. |
+| Transformation | Cleans records, converts data types, handles missing values, and removes duplicates. |
+| Loading | Updates current records and inserts new historical snapshots into SQLite. |
+| Validation | Checks database population, NULL values, positive prices, and duplicate identifiers. |
+| Analytics | Executes SQL queries to analyze historical prices and market trends. |
 
 ## 5. Project Structure
 
@@ -74,7 +90,7 @@ CoinGecko API
 crypto-etl-pipeline/
 │
 ├── data/
-│   └── raw/
+│   └── raw/                      # Raw API responses (local)
 │
 ├── queries/
 │   ├── aggregations.sql
@@ -83,107 +99,133 @@ crypto-etl-pipeline/
 │   ├── momentum_metrics.sql
 │   └── top_assets_cte.sql
 │
-├── extract.py
-├── transform.py
-├── load.py
-├── validate.py
-├── main.py
+├── extract.py                    # API data extraction
+├── transform.py                  # Data cleaning and transformation
+├── load.py                       # SQLite database loading
+├── validate.py                   # Post-load validation
+├── main.py                       # Main ETL orchestration
 │
-├── run_aggregations.py
-├── run_benchmark.py
-├── run_cte.py
-├── run_latest_snapshot.py
-├── run_momentum.py
+├── run_aggregations.py            # Aggregation query runner
+├── run_benchmark.py               # Query performance benchmark
+├── run_cte.py                     # CTE query runner
+├── run_latest_snapshot.py         # Latest snapshot query runner
+├── run_momentum.py                # Momentum analysis runner
 │
-├── test_transform.py
-├── test_perf.py
-├── requirements.txt
+├── test_transform.py              # Transformation tests
+├── test_perf.py                   # Database query test
+│
+├── schema.sql                     # Database schema reference
+├── init_db.py                     # Database initialization utility
+├── requirements.txt               # Python dependencies
 ├── .gitignore
 └── README.md
 ```
 
 ## 6. Database Schema Design
 
-The pipeline uses SQLite to store current cryptocurrency information and historical price snapshots.
+The project uses SQLite with two main tables.
 
-### `crypto_prices`
+### 6.1 `crypto_prices`
 
 Stores the latest available record for each cryptocurrency.
 
-### `crypto_price_history`
+- Uses `coin_id` as the primary key.
+- Maintains the latest market information.
+- Updates existing records when the pipeline runs again.
 
-Stores historical snapshots collected during each pipeline execution.
+### 6.2 `crypto_price_history`
 
-Each new extraction adds historical records instead of replacing previous snapshots.
+Stores historical market snapshots collected during each ETL execution.
 
-An index on `(coin_id, recorded_at)` supports queries that filter or order historical records by cryptocurrency and recording time.
+- Maintains multiple records for each cryptocurrency.
+- Stores the recording timestamp.
+- Preserves previous snapshots instead of overwriting them.
+
+### 6.3 Indexing
+
+An index named `idx_history_coin_time` is created on:
+
+```sql
+(coin_id, recorded_at)
+```
+
+This supports queries that filter historical records by cryptocurrency and recording time.
 
 ## 7. Installation and Setup
 
 ### Prerequisites
 
-- Python 3.10 or later
-- Git
-- Internet connection for API extraction
+- Python 3.10 or later.
+- Git.
+- Internet connection for API extraction.
 
-### Clone the repository
+### Step 1: Clone the repository
 
 ```bash
 git clone https://github.com/safussy/crypto-etl-pipeline.git
 cd crypto-etl-pipeline
 ```
 
-### Create a virtual environment
+### Step 2: Create a virtual environment
 
 ```bash
 python -m venv venv
 ```
 
-### Activate the environment
+### Step 3: Activate the environment
 
-Windows PowerShell:
+**Windows PowerShell:**
 
 ```powershell
 .\venv\Scripts\Activate.ps1
 ```
 
-### Install dependencies
+### Step 4: Install dependencies
 
 ```bash
 python -m pip install -r requirements.txt
 ```
 
-## 8. Running the Pipeline
+## 8. Running the ETL Pipeline
 
-Execute the complete ETL workflow:
+Execute the complete pipeline:
 
 ```bash
 python main.py
 ```
 
-The pipeline performs extraction, transformation, database loading, and post-load validation.
+The execution performs:
 
-The SQLite database is stored locally as:
+1. API data extraction.
+2. Raw JSON storage.
+3. Data transformation.
+4. SQLite database loading.
+5. Post-load validation.
+
+The database is stored locally in:
 
 ```text
 crypto_vault.db
 ```
 
-Run the pipeline again to collect another historical snapshot.
+Run the pipeline again to collect additional historical snapshots.
+
+**Note:** The database and raw API data are generated locally and are not included in the GitHub repository.
 
 ## 9. SQL Analytics
 
-The project includes SQL queries covering several analytical operations:
+The project includes SQL queries covering different analytical operations.
 
-| Analysis | SQL concepts |
+| Analysis | SQL Concepts |
 |---|---|
 | Historical aggregations | AVG, MIN, MAX, COUNT, GROUP BY |
-| Latest market snapshot | Subqueries, MAX, filtering |
-| Price momentum | LAG, window functions |
-| Moving averages | Window functions, AVG |
+| Snapshot inspection | Filtering and ordering |
+| Latest market snapshot | Subqueries and MAX |
+| Price momentum | LAG and window functions |
+| Moving averages | Window functions and AVG |
 | Top asset analysis | Common Table Expressions (CTEs) |
 
-Run the analytical scripts:
+### Running the analytical queries
 
 ```bash
 python run_aggregations.py
@@ -192,19 +234,21 @@ python run_momentum.py
 python run_cte.py
 ```
 
-Query results are displayed in the terminal.
+Each script executes its corresponding SQL query against `crypto_vault.db` and displays the results in the terminal.
 
 ## 10. Testing and Data Validation
 
-The project includes automated tests using Pytest.
+### Automated Testing
 
-Run the test suite:
+The project uses Pytest to verify important pipeline functionality.
+
+Run the tests:
 
 ```bash
 python -m pytest -v
 ```
 
-The tests cover:
+The test suite covers:
 
 - Numeric conversion and invalid values.
 - Timestamp parsing.
@@ -212,6 +256,10 @@ The tests cover:
 - Empty input datasets.
 - Duplicate and invalid records.
 - Database query correctness.
+
+**Latest test result:** 7 tests passed.
+
+### Data Quality Validation
 
 Post-load validation checks:
 
@@ -223,23 +271,23 @@ Post-load validation checks:
 
 ## 11. Performance and Optimization
 
-The project explores database query performance and indexing.
+The project includes database query benchmarking and execution-plan inspection.
 
-An index on `(coin_id, recorded_at)` supports historical data retrieval.
+The historical table uses an index on `(coin_id, recorded_at)` to support historical data retrieval.
 
-The benchmark scripts and SQLite query execution plans are used to examine query behavior and identify potential optimization opportunities.
+The benchmark scripts examine query execution behavior and provide a basis for evaluating possible database optimizations.
+
+Run the benchmark:
+
+```bash
+python run_benchmark.py
+```
 
 ## 12. Future Improvements
 
-- Automate periodic ETL execution.
-- Add a dashboard for cryptocurrency market trends.
+- Schedule automatic ETL execution.
+- Build a dashboard for cryptocurrency market trends.
 - Expand data quality monitoring.
-- Introduce more advanced market analytics.
+- Add more advanced analytical queries.
 - Explore PostgreSQL for larger datasets.
-- Add automated integration testing.
-
-## Author
-
-Developed as a data engineering portfolio project.
-
-https://github.com/safussy/crypto-etl-pipeline.git
+- Introduce automated integration
